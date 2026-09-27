@@ -4,6 +4,8 @@
  * Every test that imports `test` from here gets:
  *   - The Google Fonts stylesheet stubbed with an empty response, so tests
  *     don't depend on the network (the game falls back to monospace).
+ *     Set E2E_REAL_FONTS=1 to load the real font instead, e.g. when testing
+ *     the published site, so its genuine network requests are checked too.
  *   - A controllable clock, so the AI's 600ms "thinking" delay can be skipped
  *     instead of waited out.
  *   - Automatic failure if the browser console logs any error or the page
@@ -13,6 +15,9 @@
 import { test as base, expect } from '@playwright/test';
 
 export { expect };
+
+/** True when tests should load the real Google Font instead of a stub. */
+export const REAL_FONTS = process.env.E2E_REAL_FONTS === '1';
 
 /** The AI's delay in src/ui.js, plus a margin. */
 export const AI_TURN_MS = 700;
@@ -24,9 +29,11 @@ export const test = base.extend({
       if (msg.type() === 'error') errors.push(`console: ${msg.text()}`);
     });
     page.on('pageerror', (err) => errors.push(`pageerror: ${err.message}`));
-    await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) =>
-      route.fulfill({ status: 200, contentType: 'text/css', body: '' }),
-    );
+    if (!REAL_FONTS) {
+      await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) =>
+        route.fulfill({ status: 200, contentType: 'text/css', body: '' }),
+      );
+    }
     await page.clock.install();
     await use(page);
     expect(errors, 'browser console errors').toEqual([]);
@@ -54,7 +61,9 @@ export function cell(page, grid, row, col) {
  * @returns {Promise<void>}
  */
 export async function startGame(page, seed) {
-  await page.goto(seed === undefined ? '/' : `/?seed=${seed}`);
+  // Relative ('./'), not '/': the game may be hosted in a sub-folder such as
+  // GitHub Pages' /<repo>/, and a leading '/' would jump to the site root.
+  await page.goto(seed === undefined ? './' : `./?seed=${seed}`);
   await expect(page.getByRole('heading', { name: /NEON\s*BATTLESHIP/ })).toBeVisible();
   await page.getByRole('button', { name: 'START' }).click();
   await expect(page.locator('#status')).toHaveText('Place your Carrier (5)');

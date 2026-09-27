@@ -16,6 +16,7 @@ import {
   fireAndWait,
   snapshot,
   AI_TURN_MS,
+  REAL_FONTS,
 } from './fixtures.js';
 
 const SEED = 20260927;
@@ -76,7 +77,7 @@ function accuracyText(hits, shots) {
 }
 
 test('start screen shows the title, How to Play and START', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByRole('heading', { name: /NEON\s*BATTLESHIP/ })).toBeVisible();
   const steps = page.locator('.how-to li');
   await expect(steps).toHaveText([
@@ -174,7 +175,7 @@ test('clicks during the AI turn and on already-fired cells change nothing', asyn
   expect(await snapshot(page)).toEqual(beforeRepeat); // the AI did not get a free turn
 });
 
-test('full game: play to the end, check stats, PLAY AGAIN resets, then win', async ({ page }) => {
+test('full game: lose to the AI, check stats, PLAY AGAIN resets, then win', async ({ page }) => {
   test.setTimeout(120_000);
   await startGame(page, SEED);
   await placeDefaultFleet(page);
@@ -184,10 +185,12 @@ test('full game: play to the end, check stats, PLAY AGAIN resets, then win', asy
   for (let i = 0; i < 100 && !over; i++) over = await fireAndWait(page, Math.floor(i / 10), i % 10);
   await expect(page.locator('#end-overlay')).toBeVisible();
 
-  const enemySunkCells = await countLabels(page, 'enemy', /, sunk /);
-  const playerWon = enemySunkCells === 17;
-  await expect(page.locator('#end-title')).toHaveText(playerWon ? 'VICTORY' : 'GAME OVER');
-  if (!playerWon) expect(await countLabels(page, 'player', /, sunk$/)).toBe(17);
+  // With this seed, sweeping row by row is slower than the AI, so game 1 is a LOSS.
+  // (Game 2 below is a guaranteed WIN, so both end screens are asserted by name.)
+  await expect(page.locator('#end-title')).toHaveText('GAME OVER');
+  await expect(page.locator('#end-overlay')).toHaveAttribute('data-result', 'defeat');
+  expect(await countLabels(page, 'player', /, sunk$/)).toBe(17); // loss only when every ship cell is hit
+  expect(await countLabels(page, 'enemy', /, sunk /)).toBeLessThan(17);
 
   // Stats match what is on the boards.
   const pShots = await countLabels(page, 'enemy', /, (hit|miss|sunk .+)$/);
@@ -243,4 +246,14 @@ test('status line keeps the player informed through a turn', async ({ page }) =>
   await expect(page.locator('#status')).toHaveText(
     /^(Enemy missed at [A-J]\d+\.|Enemy hit your \w+ at [A-J]\d+!|Enemy sunk your \w+!) Your turn: fire!$/,
   );
+});
+
+test('the retro font actually loads (only with E2E_REAL_FONTS=1)', async ({ page }) => {
+  test.skip(!REAL_FONTS, 'fonts are stubbed; run with E2E_REAL_FONTS=1 to check the real font');
+  await page.goto('./');
+  const loaded = await page.evaluate(async () => {
+    await document.fonts.ready;
+    return document.fonts.check('12px "Press Start 2P"');
+  });
+  expect(loaded).toBe(true);
 });

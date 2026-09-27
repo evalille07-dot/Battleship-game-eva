@@ -25,3 +25,11 @@ A log of real bugs found during development (not planned work).
 - **Root cause:** Tapping a `<button>` fires `pointerdown → focus → click`. The keyboard-support handler previewed the ship on `focusin`, so by the time `click` ran the cell already counted as "previewed" and the second-tap check passed on the first tap.
 - **Fix:** `focusin` now ignores focus caused by a pointer (it checks the pointer type recorded on `pointerdown`), so only keyboard focus previews. After a touch placement the preview is also cleared, so the next ship's red preview doesn't sit on top of the one just placed. Commit `7de151a`.
 - **Prevention:** No automated test: mobile testing was dropped from scope at the user's request (desktop only), so the touch e2e test was not written. The fix is covered by the inline comment in `src/ui.js`; a touch test would be the first thing to add if mobile support comes back into scope.
+
+## 4. E2E tests could not run against a site hosted in a sub-folder (e.g. GitHub Pages)
+
+- **Bug:** Pointing the Playwright suite at the game served from a sub-path (`E2E_BASE_URL=http://localhost:4180/battleship-game-eva/`) made all 6 e2e tests fail with "element(s) not found" on the title heading. The game itself was fine; the tests never reached it.
+- **How found:** Rehearsing the GitHub Pages layout locally before deploying: served the parent folder so the game lived at `/battleship-game-eva/`, exactly like a Pages project site at `/<repo>/`, and ran the suite against it. Reproduced 6/6 failures.
+- **Root cause:** The tests navigated with `page.goto('/')` and `page.goto('/?seed=…')`. A leading `/` is resolved against the *origin*, not the base URL's path, so the browser loaded the server root (a directory listing) instead of the game.
+- **Fix:** Navigate with relative URLs (`./`, `./?seed=…`), which resolve under the base URL's path. Game code needed no change; `index.html` already used relative asset paths. Commit `COMMIT_PLACEHOLDER`.
+- **Prevention:** The same suite now runs both at the server root (`npm run test:e2e`) and against the live GitHub Pages URL in CI (`verify-live` job in `.github/workflows/pages.yml`), which is itself a sub-folder, so a regression fails CI. A comment in `tests/e2e/fixtures.js` explains why the paths must stay relative.

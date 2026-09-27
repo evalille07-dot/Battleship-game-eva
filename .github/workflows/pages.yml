@@ -1,0 +1,103 @@
+# pages.yml — Test, publish and verify Neon Battleship on GitHub Pages.
+#
+# 1. test:        unit + e2e tests against a local static server.
+# 2. deploy:      publish only the game files (index.html, styles.css, src/)
+#                 to GitHub Pages — a public URL, no login needed.
+# 3. verify-live: fetch the published URL anonymously, then run the whole
+#                 Playwright suite against it with the real Google Font, so
+#                 the *hosted* game is what gets verified.
+#
+# One-time setup: repo Settings → Pages → Build and deployment → Source:
+# "GitHub Actions". Until then the deploy job fails with a Pages-not-enabled error.
+
+name: Test and deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-local
+          path: test-results/
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Collect the game files only
+        run: |
+          mkdir _site
+          cp -r index.html styles.css src _site/
+          ls -R _site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  verify-live:
+    needs: deploy
+    runs-on: ubuntu-latest
+    env:
+      PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+    steps:
+      - name: Published page is reachable without authentication
+        run: |
+          echo "Checking $PAGE_URL"
+          for i in $(seq 1 30); do
+            code=$(curl -s -o page.html -w '%{http_code}' "$PAGE_URL")
+            if [ "$code" = 200 ] && grep -q 'NEON' page.html; then break; fi
+            echo "attempt $i: HTTP $code, waiting for Pages to go live"; sleep 10
+          done
+          test "$code" = 200 && grep -q 'NEON' page.html
+          for f in styles.css src/ui.js src/game.js src/ai.js src/rng.js; do
+            c=$(curl -s -o /dev/null -w '%{http_code}' "$PAGE_URL$f"); echo "$f -> $c"; test "$c" = 200
+          done
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Full e2e suite against the live site (real font)
+        run: npx playwright test
+        env:
+          E2E_BASE_URL: ${{ needs.deploy.outputs.page_url }}
+          E2E_REAL_FONTS: '1'
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-live
+          path: test-results/

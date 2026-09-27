@@ -3,7 +3,11 @@
 Single-player, retro-arcade Battleship in the browser against a medium ("hunt and target") AI.
 Plain HTML, CSS and vanilla ES modules: no framework, no build step, no backend.
 
-## Play
+## Play online
+
+**https://evalille07-dot.github.io/Battleship-game-eva/**: public, no login. Published by GitHub Actions on every push to `main` (see [DEBUGGING.md](DEBUGGING.md) for the one-time Pages setup and how the live site is tested).
+
+## Play locally
 
 Any static file server works. From the project folder:
 
@@ -36,7 +40,13 @@ npm run test:unit   # node --test: rules, AI, 1,000-game seeded simulation (no b
 npm run test:e2e    # Playwright, headless Chromium, desktop viewport
 ```
 
-The e2e tests start their own server on port 4173. They stub the Google Fonts request (so they don't need the internet) and fail on any browser console error.
+To run the same e2e suite against a hosted copy (e.g. the live site) instead of a local server:
+
+```bash
+E2E_BASE_URL=https://evalille07-dot.github.io/Battleship-game-eva/ E2E_REAL_FONTS=1 npm run test:e2e
+```
+
+By default the e2e tests start their own server on port 4173. They stub the Google Fonts request (so they don't need the internet) and fail on any browser console error.
 
 ## Project layout
 
@@ -51,7 +61,9 @@ The e2e tests start their own server on port 4173. They stub the Google Fonts re
 | `tests/unit/` | `node:test` unit tests for the rules and the AI. |
 | `tests/e2e/` | Playwright browser tests. |
 | `playwright.config.js` | e2e configuration (static server + headless Chromium). |
+| `.github/workflows/pages.yml` | CI: run all tests, deploy to GitHub Pages, then re-run the e2e suite against the live URL. |
 | `BUGS_AND_FIXES.md` | Log of real bugs found during development. |
+| `DEBUGGING.md` | Publishing investigation, verification matrix, and what is/isn't verified yet. |
 
 ## How the AI plays
 
