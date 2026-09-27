@@ -1,0 +1,92 @@
+<!doctype html>
+<!--
+  index.html — Page markup for Neon Battleship.
+
+  Holds the three screens (start, game, end-of-game overlay) as static
+  markup. The grid cells, status text, fleet lists and stats are filled in
+  by src/ui.js, which is the only script loaded; it imports the game rules
+  (src/game.js), the AI (src/ai.js) and the seeded RNG (src/rng.js).
+  All styling lives in styles.css.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Neon Battleship</title>
+    <!-- Empty inline favicon: stops the browser requesting /favicon.ico (a 404 console error). -->
+    <link rel="icon" href="data:," />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="src/ui.js"></script>
+  </head>
+  <body>
+    <!-- Start screen -->
+    <main id="start-screen" class="screen screen--start">
+      <h1 class="title">NEON<br />BATTLESHIP</h1>
+      <section class="panel how-to" aria-labelledby="how-to-title">
+        <h2 id="how-to-title">How to Play</h2>
+        <ol>
+          <li>Place your 5 ships on your grid.</li>
+          <li>Take turns firing at the enemy grid.</li>
+          <li>Sink all 5 enemy ships to win.</li>
+          <li>Press R or tap ROTATE to turn a ship.</li>
+        </ol>
+      </section>
+      <button id="start-btn" class="btn btn--primary" type="button">START</button>
+    </main>
+
+    <!-- Game screen: hidden until START -->
+    <main id="game-screen" class="screen screen--game" hidden>
+      <h1 class="title title--small">NEON BATTLESHIP</h1>
+
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+
+      <div id="placement-controls" class="controls">
+        <button id="rotate-btn" class="btn" type="button" aria-keyshortcuts="R">ROTATE</button>
+        <button id="undo-btn" class="btn" type="button">UNDO</button>
+      </div>
+
+      <div class="boards">
+        <section class="board-wrap board-wrap--player" aria-labelledby="player-board-title">
+          <h2 id="player-board-title" class="board-title">YOUR FLEET</h2>
+          <div id="player-grid" class="grid" role="group" aria-label="Your grid"></div>
+          <ul id="player-fleet" class="fleet-list" aria-label="Your ships"></ul>
+        </section>
+
+        <section class="board-wrap board-wrap--enemy" aria-labelledby="enemy-board-title">
+          <h2 id="enemy-board-title" class="board-title">ENEMY WATERS</h2>
+          <div id="enemy-grid" class="grid" role="group" aria-label="Enemy grid"></div>
+          <ul id="enemy-fleet" class="fleet-list" aria-label="Enemy ships still afloat"></ul>
+        </section>
+      </div>
+    </main>
+
+    <!-- End-of-game overlay -->
+    <div id="end-overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="end-title" hidden>
+      <div class="panel end-panel">
+        <h2 id="end-title" class="end-title"></h2>
+        <p id="end-subtitle" class="end-subtitle"></p>
+
+        <table class="stats" aria-label="End of game stats">
+          <thead>
+            <tr><th scope="col"></th><th scope="col">YOU</th><th scope="col">AI</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Shots fired</th><td data-stat="player-shots"></td><td data-stat="ai-shots"></td></tr>
+            <tr><th scope="row">Hits</th><td data-stat="player-hits"></td><td data-stat="ai-hits"></td></tr>
+            <tr><th scope="row">Accuracy</th><td data-stat="player-accuracy"></td><td data-stat="ai-accuracy"></td></tr>
+            <tr><th scope="row">Total turns</th><td data-stat="player-turns"></td><td data-stat="ai-turns"></td></tr>
+          </tbody>
+        </table>
+
+        <h3 class="reveal-title">ENEMY FLEET</h3>
+        <div id="reveal-grid" class="grid grid--mini" role="img" aria-label="Enemy fleet positions"></div>
+
+        <button id="play-again-btn" class="btn btn--primary" type="button">PLAY AGAIN</button>
+      </div>
+    </div>
+  </body>
+</html>

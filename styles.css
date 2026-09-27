@@ -1,0 +1,602 @@
+/*
+ * styles.css — All styling for Neon Battleship (retro arcade look).
+ *
+ * Pairs with index.html (static structure) and src/ui.js, which toggles the
+ * state classes used below: .ship .hit .miss .sunk .revealed .flash
+ * .preview-valid .preview-invalid on cells, and .grid--active / .grid--locked
+ * on grids.
+ *
+ * Colour roles: cyan = player, magenta = enemy, green = valid action,
+ * red = hits and invalid actions. Boards sit side by side on wide screens
+ * and stack below 768px. prefers-reduced-motion turns off flashes and glow
+ * animation.
+ */
+
+:root {
+  --bg: #070b1a;
+  --bg-panel: #0d1430;
+  --bg-cell: #111a3d;
+  --grid-line: #1f2b5c;
+  --text: #e8f0ff;
+  --text-dim: #a9b8d6;
+  --cyan: #00f0ff;
+  --magenta: #ff3de0;
+  --green: #39ff6a;
+  --red: #ff3b5c;
+  --amber: #ffd23f;
+  --font: 'Press Start 2P', monospace;
+  --cell: 34px;
+  --label: 18px;
+  --gap: 2px;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: radial-gradient(ellipse at top, #0f1840 0%, var(--bg) 60%) fixed, var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* CRT scanlines: a fixed, click-through overlay kept faint so text stays readable. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.025) 0,
+    rgba(255, 255, 255, 0.025) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Screens ---------- */
+
+.screen {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.screen--start {
+  min-height: 100vh;
+  justify-content: center;
+}
+
+.title {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(22px, 6vw, 44px);
+  line-height: 1.4;
+  color: var(--cyan);
+  text-shadow: 0 0 6px var(--cyan), 0 0 18px rgba(0, 240, 255, 0.5), 3px 3px 0 var(--magenta);
+}
+
+.title--small {
+  font-size: clamp(14px, 3.5vw, 22px);
+  text-shadow: 0 0 6px var(--cyan), 2px 2px 0 var(--magenta);
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: 2px solid var(--grid-line);
+  border-radius: 6px;
+  padding: 18px 20px;
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.08);
+}
+
+.how-to {
+  max-width: 520px;
+  width: 100%;
+}
+
+.how-to h2 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--magenta);
+  text-shadow: 0 0 6px rgba(255, 61, 224, 0.6);
+}
+
+.how-to ol {
+  margin: 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 10px;
+  font-size: 11px;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--text);
+  background: transparent;
+  border: 2px solid var(--text-dim);
+  border-radius: 4px;
+  padding: 12px 18px;
+  min-height: 44px;
+  cursor: pointer;
+  transition: box-shadow 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.btn:hover:not(:disabled),
+.btn:focus-visible {
+  border-color: var(--green);
+  color: var(--green);
+  box-shadow: 0 0 10px rgba(57, 255, 106, 0.6);
+  outline: none;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  font-size: 16px;
+  padding: 16px 32px;
+  border-color: var(--green);
+  color: var(--green);
+  box-shadow: 0 0 12px rgba(57, 255, 106, 0.45);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    box-shadow: 0 0 24px rgba(57, 255, 106, 0.85);
+  }
+}
+
+/* ---------- Status + controls ---------- */
+
+.status {
+  margin: 0;
+  min-height: 3.4em;
+  width: 100%;
+  max-width: 760px;
+  padding: 10px 14px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--amber);
+  background: var(--bg-panel);
+  border: 2px solid var(--grid-line);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ---------- Boards ---------- */
+
+.boards {
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.board-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.board-title {
+  margin: 0;
+  font-size: 13px;
+}
+
+.board-wrap--player .board-title {
+  color: var(--cyan);
+  text-shadow: 0 0 6px rgba(0, 240, 255, 0.6);
+}
+
+.board-wrap--enemy .board-title {
+  color: var(--magenta);
+  text-shadow: 0 0 6px rgba(255, 61, 224, 0.6);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: var(--label) repeat(10, var(--cell));
+  grid-auto-rows: var(--cell);
+  gap: var(--gap);
+  padding: 6px;
+  border: 2px solid var(--grid-line);
+  border-radius: 4px;
+  transition: box-shadow 0.2s, border-color 0.2s, opacity 0.2s;
+}
+
+/* The column-number header row is shorter than a cell. */
+.grid > .grid__label:nth-child(-n + 11) {
+  align-self: end;
+}
+
+.board-wrap--player .grid--active {
+  border-color: var(--cyan);
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.45);
+  animation: glow-cyan 2s ease-in-out infinite;
+}
+
+.board-wrap--enemy .grid--active {
+  border-color: var(--magenta);
+  box-shadow: 0 0 14px rgba(255, 61, 224, 0.45);
+  animation: glow-magenta 2s ease-in-out infinite;
+}
+
+.grid--locked .cell {
+  cursor: default;
+}
+
+[data-phase='placement'] .board-wrap--enemy .grid {
+  opacity: 0.55;
+}
+
+@keyframes glow-cyan {
+  50% {
+    box-shadow: 0 0 26px rgba(0, 240, 255, 0.7);
+  }
+}
+
+@keyframes glow-magenta {
+  50% {
+    box-shadow: 0 0 26px rgba(255, 61, 224, 0.7);
+  }
+}
+
+.grid__label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.cell {
+  position: relative;
+  width: var(--cell);
+  height: var(--cell);
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--grid-line);
+  border-radius: 2px;
+  background: var(--bg-cell);
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.cell:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 1px;
+  z-index: 1;
+}
+
+.board-wrap--enemy .grid--active .cell:not(.fired):hover {
+  border-color: var(--green);
+  box-shadow: inset 0 0 8px rgba(57, 255, 106, 0.6);
+}
+
+.board-wrap--enemy .cell.fired,
+[data-phase='battle'] .board-wrap--player .cell,
+[data-phase='over'] .board-wrap--player .cell {
+  cursor: default;
+}
+
+/* Player's own ships. Deliberately a plain two-class selector: it must not
+   out-rank .hit / .sunk below, or damaged ships would stay cyan. */
+.cell.ship {
+  background: rgba(0, 240, 255, 0.22);
+  border-color: var(--cyan);
+}
+
+/* Placement preview: green when legal, red when not. */
+.cell.preview-valid {
+  background: rgba(57, 255, 106, 0.35);
+  border-color: var(--green);
+  box-shadow: inset 0 0 8px rgba(57, 255, 106, 0.7);
+}
+
+.cell.preview-invalid {
+  background: rgba(255, 59, 92, 0.35);
+  border-color: var(--red);
+  box-shadow: inset 0 0 8px rgba(255, 59, 92, 0.7);
+}
+
+/* Miss: a dim dot. */
+.cell.miss::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  opacity: 0.55;
+}
+
+/* Hit: red cross. */
+.cell.hit {
+  background: rgba(255, 59, 92, 0.28);
+  border-color: var(--red);
+}
+
+.cell.hit::after {
+  content: '\00D7';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Arial, sans-serif;
+  font-size: 26px;
+  font-weight: bold;
+  color: var(--red);
+  text-shadow: 0 0 6px var(--red);
+}
+
+/* Sunk: the whole ship fully highlighted. */
+.cell.sunk {
+  background: var(--red);
+  border-color: #ffb3c1;
+  box-shadow: 0 0 10px var(--red);
+}
+
+.cell.sunk::after {
+  content: '\00D7';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Arial, sans-serif;
+  font-size: 26px;
+  font-weight: bold;
+  color: var(--bg);
+}
+
+/* Short flash on the most recent hit. */
+.cell.flash {
+  animation: hit-flash 0.45s ease-out;
+}
+
+@keyframes hit-flash {
+  0% {
+    background: #fff;
+    box-shadow: 0 0 22px 6px var(--red);
+  }
+}
+
+/* End overlay: enemy ships the player never found. */
+.cell.revealed {
+  background: rgba(255, 61, 224, 0.3);
+  border-color: var(--magenta);
+}
+
+/* ---------- Fleet lists ---------- */
+
+.fleet-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 12px;
+  max-width: calc(var(--label) + 10 * var(--cell) + 9 * var(--gap) + 16px);
+  font-size: 9px;
+}
+
+.fleet-list__item {
+  color: var(--text);
+}
+
+.fleet-list__item.is-sunk {
+  color: var(--red);
+  text-decoration: line-through;
+}
+
+.fleet-list__item.is-next {
+  color: var(--green);
+  text-shadow: 0 0 6px rgba(57, 255, 106, 0.7);
+}
+
+.fleet-list__item.is-pending {
+  color: var(--text-dim);
+}
+
+/* ---------- End overlay ---------- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(4, 6, 16, 0.92);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 24px 16px;
+}
+
+.end-panel {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 480px;
+  width: 100%;
+}
+
+.end-title {
+  margin: 0;
+  font-size: clamp(24px, 7vw, 36px);
+}
+
+[data-result='victory'] .end-title {
+  color: var(--green);
+  text-shadow: 0 0 10px var(--green), 0 0 24px rgba(57, 255, 106, 0.6);
+}
+
+[data-result='defeat'] .end-title {
+  color: var(--red);
+  text-shadow: 0 0 10px var(--red), 0 0 24px rgba(255, 59, 92, 0.6);
+}
+
+.end-subtitle {
+  margin: 0;
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.stats {
+  border-collapse: collapse;
+  font-size: 10px;
+  width: 100%;
+}
+
+.stats th,
+.stats td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--grid-line);
+  text-align: right;
+}
+
+.stats th[scope='row'] {
+  text-align: left;
+  color: var(--text-dim);
+  font-weight: normal;
+}
+
+.stats thead th:nth-child(2) {
+  color: var(--cyan);
+}
+
+.stats thead th:nth-child(3) {
+  color: var(--magenta);
+}
+
+.reveal-title {
+  margin: 4px 0 0;
+  font-size: 10px;
+  color: var(--magenta);
+}
+
+.grid--mini {
+  --cell: 20px;
+  --label: 12px;
+}
+
+.grid--mini .grid__label {
+  font-size: 7px;
+}
+
+.grid--mini .cell.hit::after,
+.grid--mini .cell.sunk::after {
+  font-size: 16px;
+}
+
+.grid--mini .cell.miss::after {
+  width: 5px;
+  height: 5px;
+}
+
+/* ---------- Responsive ---------- */
+
+/* Medium screens: shrink cells so two boards still fit side by side. */
+@media (max-width: 900px) {
+  :root {
+    --cell: 30px;
+  }
+}
+
+/* Below 768px the boards stack; cells stay >= 32px so they're easy to tap. */
+@media (max-width: 767px) {
+  :root {
+    --cell: 32px;
+    --label: 14px;
+  }
+
+  .screen {
+    padding: 16px 12px 32px;
+    gap: 14px;
+  }
+
+  .boards {
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .grid {
+    padding: 2px;
+  }
+
+  .how-to ol {
+    font-size: 10px;
+  }
+
+  .status {
+    font-size: 10px;
+  }
+}
+
+/* ---------- Reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

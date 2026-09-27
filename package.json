@@ -8,5 +8,9 @@
     "start": "npx serve .",
     "test": "npm run test:unit",
     "test:unit": "node --test \"tests/unit/**/*.test.js\""
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "serve": "^14.2.6"
   }
 }
