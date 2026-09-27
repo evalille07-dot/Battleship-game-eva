@@ -22,6 +22,7 @@ const SEED = 20260927;
 
 /**
  * Read the enemy ship cells from the end overlay's reveal grid.
+ * @param {import('@playwright/test').Page} page
  * @returns {Promise<{row:number,col:number}[]>}
  */
 async function revealedEnemyCells(page) {
@@ -35,6 +36,10 @@ async function revealedEnemyCells(page) {
 
 /**
  * Count cells on a grid whose accessible label matches a pattern.
+ * Labels are what screen readers announce, so this also checks they're accurate.
+ * @param {import('@playwright/test').Page} page
+ * @param {'player'|'enemy'} grid
+ * @param {RegExp} pattern
  * @returns {Promise<number>}
  */
 async function countLabels(page, grid, pattern) {
@@ -42,9 +47,15 @@ async function countLabels(page, grid, pattern) {
   return labels.filter((l) => pattern.test(l)).length;
 }
 
-/** Read the stats table into { player: {...}, ai: {...} }. */
+/**
+ * Read the end overlay's stats table.
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<{player: object, ai: object}>} Shots, hits, accuracy and turns as displayed text.
+ */
 async function readStats(page) {
+  /** @param {string} key @returns {Promise<string|null>} One stats cell's text. */
   const get = (key) => page.locator(`[data-stat="${key}"]`).textContent();
+  /** @param {'player'|'ai'} s @returns {Promise<object>} That side's column. */
   const side = async (s) => ({
     shots: await get(`${s}-shots`),
     hits: await get(`${s}-hits`),
@@ -54,7 +65,12 @@ async function readStats(page) {
   return { player: await side('player'), ai: await side('ai') };
 }
 
-/** Expected accuracy text, mirroring the PRD's rounding rule. */
+/**
+ * Expected accuracy text, mirroring the PRD's rule (1 decimal, 0% with no shots).
+ * @param {number} hits
+ * @param {number} shots
+ * @returns {string} e.g. "33.3%".
+ */
 function accuracyText(hits, shots) {
   return `${shots === 0 ? '0.0' : (Math.round((hits / shots) * 1000) / 10).toFixed(1)}%`;
 }

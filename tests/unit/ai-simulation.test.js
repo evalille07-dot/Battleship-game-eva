@@ -56,6 +56,7 @@ test(`AI over ${GAMES} seeded games: in bounds, no repeats, done within 100 shot
 });
 
 test('same seed gives the same AI shot sequence', () => {
+  /** @returns {number[][]} The [row, col] of every AI shot in one seeded game. */
   const run = () => {
     const board = placeFleetRandomly(createBoard(), createRng(42));
     const ai = createAi(createRng(4242));

@@ -18,6 +18,7 @@ import {
 
 /**
  * Build a game with both fleets placed on rows A, C, E, G, I and the battle started.
+ * Takes no parameters; asserts that the battle actually started.
  * @returns {import('../../src/game.js').Game}
  */
 function battleReadyGame() {

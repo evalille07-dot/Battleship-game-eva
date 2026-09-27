@@ -24,8 +24,13 @@ import { boardWithShips, playOut } from './helpers.js';
 const fns = { chooseShot, recordShotResult, fireAt, allShipsSunk };
 
 /**
- * Give the AI a specific opening hit (as if its hunt shot landed there).
- * @returns {object} The AI state.
+ * Give a fresh AI a specific opening shot (as if its hunt shot landed there),
+ * so tests control where targeting starts.
+ * @param {object} board - Target board; mutated by the shot.
+ * @param {number} row
+ * @param {number} col
+ * @param {number} [seed=1] - Seed for the AI's rng.
+ * @returns {object} The AI state, already told the result of that shot.
  */
 function aiWithFirstShotAt(board, row, col, seed = 1) {
   const ai = createAi(createRng(seed));
@@ -34,7 +39,9 @@ function aiWithFirstShotAt(board, row, col, seed = 1) {
 }
 
 /**
- * @returns {boolean} True if two cells share an edge.
+ * @param {{row:number,col:number}} a
+ * @param {{row:number,col:number}} b
+ * @returns {boolean} True if the two cells share an edge.
  */
 function adjacent(a, b) {
   return Math.abs(a.row - b.row) + Math.abs(a.col - b.col) === 1;
@@ -58,6 +65,7 @@ test('placeFleetRandomly places the full fleet legally', () => {
 });
 
 test('placeFleetRandomly is repeatable per seed and varies across seeds', () => {
+  /** @param {number} seed @returns {string} The fleet placed with that seed, serialised. */
   const layout = (seed) => JSON.stringify(placeFleetRandomly(createBoard(), createRng(seed)).ships);
   assert.equal(layout(123), layout(123));
   assert.notEqual(layout(123), layout(124));

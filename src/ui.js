@@ -45,6 +45,11 @@ const AI_DELAY_MS = 600;
 /** Seed from the URL, if any. Read once: PLAY AGAIN reuses it so seeded runs stay repeatable. */
 const URL_SEED = parseSeed(window.location.search);
 
+/**
+ * Shorthand for document.getElementById.
+ * @param {string} id
+ * @returns {HTMLElement} The element (all ids used here exist in index.html).
+ */
 const $ = (id) => document.getElementById(id);
 
 const dom = {
