@@ -3,7 +3,7 @@
 Single-player, retro-arcade Battleship in the browser against a medium ("hunt and target") AI.
 Plain HTML, CSS and vanilla ES modules — no build step, no backend.
 
-> Status: **Milestone 1 (scaffold + game logic)** complete. The AI, UI and e2e tests land in later milestones.
+> Status: **Milestone 2 (AI)** complete. The UI and e2e tests land in later milestones.
 
 ## Run the tests
 
@@ -20,4 +20,5 @@ npm run test:unit # unit tests in tests/unit/
 | --- | --- |
 | `src/rng.js` | Seedable RNG (mulberry32) and `?seed=` parsing. All randomness goes through here. |
 | `src/game.js` | Pure rules: boards, placement, firing, sinking, turns, win check, stats. No DOM. |
-| `tests/unit/` | `node:test` unit tests for the logic. |
+| `src/ai.js` | AI opponent: random fleet placement and hunt / target / line-lock firing. No DOM. |
+| `tests/unit/` | `node:test` unit tests for the logic and AI, including a 1,000-game seeded simulation. |

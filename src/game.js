@@ -54,6 +54,9 @@ export const VERTICAL = 'vertical';
  * @property {number} row
  * @property {number} col
  * @property {string|null} shipName - Name of the ship hit/sunk, else null.
+ * @property {Cell[]} [sunkCells] - Only on 'sunk': every cell of the sunk ship.
+ *   Sunk ships are revealed on screen anyway, so the AI may use this to tell
+ *   which of its hits are now resolved (see src/ai.js).
  *
  * @typedef {{ shots: number, hits: number, turns: number }} Stats
  *
@@ -249,7 +252,10 @@ export function fireAt(board, row, col) {
   }
   board.shots[row][col] = 'hit';
   ship.hits += 1;
-  return { outcome: isShipSunk(ship) ? 'sunk' : 'hit', row, col, shipName: ship.name };
+  if (isShipSunk(ship)) {
+    return { outcome: 'sunk', row, col, shipName: ship.name, sunkCells: ship.cells.map((c) => ({ ...c })) };
+  }
+  return { outcome: 'hit', row, col, shipName: ship.name };
 }
 
 /**

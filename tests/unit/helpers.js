@@ -1,12 +1,12 @@
 /**
  * helpers.js — Shared fixtures for the unit tests in tests/unit/.
  *
- * Provides a fixed, hand-picked fleet layout so tests can reason about exact
- * ship positions without any randomness. Not a test file itself (no
+ * Provides fixed, hand-picked board layouts so tests can reason about exact
+ * ship positions, plus a loop that plays the AI against a board. Not a test file itself (no
  * `.test.js` suffix), so `node --test` does not run it directly.
  */
 
-import { createBoard, placeNextShip, HORIZONTAL } from '../../src/game.js';
+import { createBoard, placeNextShip, canPlaceShip, getShipCells, HORIZONTAL } from '../../src/game.js';
 
 /**
  * Build a board with the full fleet laid out horizontally on rows A, C, E, G, I,
@@ -40,4 +40,46 @@ export function hitEveryShipCell(board, fire) {
     for (const { row, col } of ship.cells) results.push(fire(board, row, col));
   }
   return results;
+}
+
+/**
+ * Build a board with an arbitrary set of ships, bypassing fleet order.
+ * Lets AI tests set up exact layouts (a lone ship, touching ships, etc.).
+ *
+ * @param {{ name: string, row: number, col: number, size: number, orientation: 'horizontal'|'vertical' }[]} specs
+ * @returns {import('../../src/game.js').Board}
+ * @throws {Error} If a spec is off the grid or overlaps an earlier one.
+ */
+export function boardWithShips(specs) {
+  const board = createBoard();
+  for (const { name, row, col, size, orientation } of specs) {
+    if (!canPlaceShip(board, row, col, size, orientation)) throw new Error(`bad fixture: ${name}`);
+    board.ships.push({ name, size, orientation, cells: getShipCells(row, col, size, orientation), hits: 0 });
+  }
+  return board;
+}
+
+/**
+ * Let the AI fire at a board until every ship is sunk (or a shot cap is hit),
+ * recording every shot and the mode used to choose it.
+ *
+ * @param {object} ai - AI state from createAi (mutated).
+ * @param {import('../../src/game.js').Board} board - Target board (mutated).
+ * @param {{ chooseShot: Function, recordShotResult: Function, fireAt: Function, allShipsSunk: Function }} fns
+ * @param {number} [maxShots=100] - Safety cap so a buggy AI can't loop forever.
+ * @returns {{ row: number, col: number, outcome: string, mode: string, pending: number }[]}
+ *   The shot log. `pending` is how many unresolved hits the AI had *before*
+ *   choosing that shot, so tests can check hunt mode is only used when it
+ *   had nothing left to chase.
+ */
+export function playOut(ai, board, { chooseShot, recordShotResult, fireAt, allShipsSunk }, maxShots = 100) {
+  const log = [];
+  while (!allShipsSunk(board) && log.length < maxShots) {
+    const pending = ai.unresolvedHits.length;
+    const { row, col } = chooseShot(ai);
+    const result = fireAt(board, row, col);
+    recordShotResult(ai, result);
+    log.push({ row, col, outcome: result.outcome, mode: ai.lastMode, pending });
+  }
+  return log;
 }

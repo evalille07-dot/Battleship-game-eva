@@ -31,6 +31,15 @@ test('final cell of a ship reports sunk', () => {
   assert.equal(r.outcome, 'sunk');
   assert.equal(r.shipName, 'Destroyer');
   assert.ok(!remainingShipNames(board).includes('Destroyer'));
+  assert.deepEqual(r.sunkCells, [{ row: 8, col: 0 }, { row: 8, col: 1 }]);
+});
+
+test('sunkCells is a copy: changing it cannot move the ship', () => {
+  const board = boardWithStandardFleet();
+  fireAt(board, 8, 0);
+  const r = fireAt(board, 8, 1);
+  r.sunkCells[0].row = 5;
+  assert.equal(board.ships[4].cells[0].row, 8);
 });
 
 test('firing at the same cell again reports already-fired and changes nothing', () => {
