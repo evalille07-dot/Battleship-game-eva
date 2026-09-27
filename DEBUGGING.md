@@ -7,7 +7,7 @@ Short record of how the finished game was published, what was verified and how, 
 | What | URL | Access |
 | --- | --- | --- |
 | Repository | https://github.com/evalille07-dot/Battleship-game-eva | Public (checked anonymously: HTTP 200) |
-| Playable game (interview link) | https://evalille07-dot.github.io/Battleship-game-eva/ | Public once GitHub Pages is enabled (see Status) |
+| Playable game (interview link) | https://evalille07-dot.github.io/Battleship-game-eva/ | Public, no login (verified by CI, see Status) |
 | Claude artifact (preview copy) | https://claude.ai/artifact/F7fEsgf5sBGWHdLvbScxDp | **Private**, needs a claude.ai login. Anonymous request: HTTP 403. Not for interviewers. |
 
 ## 1. Why the first artifact publish failed
@@ -29,7 +29,7 @@ Short record of how the finished game was published, what was verified and how, 
 2. **deploy**: publishes only `index.html`, `styles.css`, `src/` to Pages.
 3. **verify-live**: fetches the live URL *anonymously* (must be HTTP 200 and contain the game), checks every asset returns 200, then runs the **full Playwright suite against the live site** with the real Google Font loaded.
 
-**One-time manual step (repo owner):** Settings → Pages → Build and deployment → Source: **GitHub Actions**. Until this is done, the deploy job fails with a "Pages not enabled" error; that failure is expected, not a code bug.
+**One-time manual step (repo owner, done):** Settings → Pages → Build and deployment → Source: **GitHub Actions**. Before this was set, run #1 failed at `configure-pages` with *"Get Pages site failed… verify that the repository has Pages enabled"* (expected, not a code bug); run #2, after enabling it, passed.
 
 The development sandbox cannot reach `*.github.io` (egress policy: `CONNECT tunnel failed, response 403`), which is why live verification runs on GitHub's runners rather than locally.
 
@@ -52,17 +52,17 @@ The development sandbox cannot reach `*.github.io` (egress policy: `CONNECT tunn
 
 ## 4. Status
 
-**Verified (in this environment):**
-- `npm test`: 56 unit tests + 6 e2e tests pass (desktop, headless Chromium, local server).
-- The same 6 e2e tests pass with the game served from a sub-folder, as on Pages.
-- The repository is public.
-- The artifact's 5 code files are byte-identical to the repo's.
+**Verified on the published site** ([Actions run #2](https://github.com/evalille07-dot/Battleship-game-eva/actions/runs/36356101173), commit `8018fc9`, all 3 jobs green):
+- `test`: 56 unit + 6 e2e tests pass on a clean GitHub runner.
+- `deploy`: game published to https://evalille07-dot.github.io/Battleship-game-eva/.
+- `verify-live`: the URL and all 5 assets return HTTP 200 to an anonymous request, then **all 7 e2e tests pass against the live site** with the real Press Start 2P font loaded and no console errors: start screen, placement/rotation/invalid placement/undo, hidden enemy fleet, turn locking + duplicate shots, a full game lost to the AI (GAME OVER), PLAY AGAIN reset, a full game won (VICTORY), status messages, font loaded.
 
-**Not yet verified (pending):**
-- **The published GitHub Pages site.** It needs the one-time Pages setting above; then the `verify-live` CI job is what verifies it. Until that job is green, the hosted version is **not** verified.
-- The real Press Start 2P font loading (fonts are stubbed locally because the sandbox can't reach Google Fonts; checked live by `verify-live`).
+**Also verified locally:** same suite with the game served from a sub-folder; artifact code files byte-identical to the repo; repository public (anonymous HTTP 200).
+
+**Not verified:**
 - Mobile/touch: out of scope by request (desktop only); no automated mobile test.
-- The Claude artifact page at runtime (private; can't be loaded anonymously). It is not the interview link.
+- Browsers other than Chromium (tests run in headless Chromium only).
+- The private Claude artifact at runtime (needs a login; not the interview link).
 
 ## 5. Bugs found
 
